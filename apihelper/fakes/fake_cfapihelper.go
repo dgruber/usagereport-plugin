@@ -227,4 +227,24 @@ func (fake *FakeCFAPIHelper) GetSpaceAppsReturns(result1 []apihelper.App, result
 	}{result1, result2}
 }
 
+func (fake *FakeCFAPIHelper) GetServiceBindings(url string) ([]apihelper.ServiceBindings, error) {
+	return nil, nil
+}
+
+func (fake *FakeCFAPIHelper) GetServiceInstanceMap(url string) (map[string]apihelper.ServiceInstance, error) {
+	return nil, nil
+}
+
+func (fake *FakeCFAPIHelper) GetServiceMap() (map[string]apihelper.Service, error) {
+	return nil, nil
+}
+
+func (fake *FakeCFAPIHelper) GetServicePlanMap() (map[string]apihelper.ServicePlan, error) {
+	return nil, nil
+}
+
+func (fake *FakeCFAPIHelper) GetUserProvidedServiceMap() (map[string]apihelper.UserProvidedService, error) {
+	return nil, nil
+}
+
 var _ apihelper.CFAPIHelper = new(FakeCFAPIHelper)

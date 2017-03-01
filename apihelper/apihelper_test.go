@@ -5,7 +5,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/cloudfoundry/cli/plugin/fakes"
+	"github.com/cloudfoundry/cli/plugin/pluginfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -23,10 +23,10 @@ func slurp(filename string) []string {
 
 var _ = Describe("UsageReport", func() {
 	var api CFAPIHelper
-	var fakeCliConnection *fakes.FakeCliConnection
+	var fakeCliConnection *pluginfakes.FakeCliConnection
 
 	BeforeEach(func() {
-		fakeCliConnection = &fakes.FakeCliConnection{}
+		fakeCliConnection = &pluginfakes.FakeCliConnection{}
 		api = New(fakeCliConnection)
 	})
 
@@ -186,4 +186,113 @@ var _ = Describe("UsageReport", func() {
 	})
 
 	// TODO need tests for no spaces and no apps in org.
+
+	Describe("get service bindings", func() {
+		var sbJSON []string
+
+		BeforeEach(func() {
+			sbJSON = slurp("test-data/service_bindings_for_app.json")
+		})
+
+		It("should return an error when the service binding url fails", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
+			_, err := api.GetServiceBindings("/v2/whateverapps")
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return one one service binding with the service instance GUID to be set", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(sbJSON, nil)
+			bindings, _ := api.GetServiceBindings("/v2/whateverapps")
+			Expect(len(bindings)).To(Equal(1))
+			Expect(bindings[0].ServiceInstanceGUID).To(Equal("92f0f510-dbb1-4c04-aa7c-28a8dc0797b4"))
+		})
+
+	})
+
+	Describe("get service instance map", func() {
+		var serviceInstancesJSON []string
+
+		BeforeEach(func() {
+			serviceInstancesJSON = slurp("test-data/service_instances.json")
+		})
+
+		It("should return an error when the service instance url fails", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
+			_, err := api.GetServiceInstanceMap("/v2/whateverapps")
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return a map containing a specific element with all entries set", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(serviceInstancesJSON, nil)
+			siMap, err := api.GetServiceInstanceMap("/v2/whateverapps")
+
+			Expect(err).To(BeNil())
+			Expect(siMap).NotTo(BeNil())
+
+			si, exists := siMap["215b97be-ec77-4224-9c38-c4f2d86b56c1"]
+			Expect(exists).To(BeTrue())
+			Expect(si.GUID).To(Equal("215b97be-ec77-4224-9c38-c4f2d86b56c1"))
+			Expect(si.Name).To(Equal("name-1523"))
+			Expect(si.Type).To(Equal("managed_service_instance"))
+		})
+	})
+
+	Describe("get service plan map", func() {
+		var servicePlanJSON []string
+
+		BeforeEach(func() {
+			servicePlanJSON = slurp("test-data/service_plan.json")
+		})
+
+		It("should return an error when the service plan url fails", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
+			_, err := api.GetServiceInstanceMap("/v2/whateverapps")
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return a map containing a specific element with all entries set", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(servicePlanJSON, nil)
+			spMap, err := api.GetServicePlanMap()
+
+			Expect(err).To(BeNil())
+			Expect(spMap).NotTo(BeNil())
+
+			s, exists := spMap["6fecf53b-7553-4cb3-b97e-930f9c4e3385"]
+
+			Expect(exists).To(BeTrue())
+			Expect(s.GUID).To(Equal("6fecf53b-7553-4cb3-b97e-930f9c4e3385"))
+			Expect(s.ServiceGUID).To(Equal("1ccab853-87c9-45a6-bf99-603032d17fe5"))
+		})
+
+	})
+
+	Describe("get service map", func() {
+		var serviceJSON []string
+
+		BeforeEach(func() {
+			serviceJSON = slurp("test-data/services.json")
+		})
+
+		It("should return an error when the services url fails", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
+			_, err := api.GetServiceInstanceMap("/v2/whateverapps")
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return a map containing a specific element with all entries set", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(serviceJSON, nil)
+			spMap, err := api.GetServiceMap()
+
+			Expect(err).To(BeNil())
+			Expect(spMap).NotTo(BeNil())
+
+			s, exists := spMap["1993218f-096d-4216-bf9d-e0f250332dc6"]
+
+			Expect(exists).To(BeTrue())
+			Expect(s.GUID).To(Equal("1993218f-096d-4216-bf9d-e0f250332dc6"))
+			Expect(s.Label).To(Equal("label-57"))
+		})
+
+	})
+
 })

@@ -30,9 +30,11 @@ type Space struct {
 
 //App representation
 type App struct {
-	Instances float64
-	RAM       float64
-	Running   bool
+	Instances          float64
+	RAM                float64
+	Running            bool
+	Name               string
+	ServiceBindingsURL string
 }
 
 //CFAPIHelper to wrap cf curl results
@@ -43,6 +45,11 @@ type CFAPIHelper interface {
 	GetOrgMemoryUsage(Organization) (float64, error)
 	GetOrgSpaces(string) ([]Space, error)
 	GetSpaceApps(string) ([]App, error)
+	GetServiceBindings(serviceBindingsURL string) ([]ServiceBindings, error)
+	GetServiceInstanceMap(siURL string) (map[string]ServiceInstance, error)
+	GetServiceMap() (map[string]Service, error)
+	GetServicePlanMap() (map[string]ServicePlan, error)
+	GetUserProvidedServiceMap() (map[string]UserProvidedService, error)
 }
 
 //APIHelper implementation
@@ -163,10 +170,150 @@ func (api *APIHelper) GetSpaceApps(appsURL string) ([]App, error) {
 		entity := theApp["entity"].(map[string]interface{})
 		apps = append(apps,
 			App{
-				Instances: entity["instances"].(float64),
-				RAM:       entity["memory"].(float64),
-				Running:   "STARTED" == entity["state"].(string),
+				Instances:          entity["instances"].(float64),
+				RAM:                entity["memory"].(float64),
+				Running:            "STARTED" == entity["state"].(string),
+				ServiceBindingsURL: entity["service_bindings_url"].(string),
+				Name:               entity["name"].(string),
 			})
 	}
 	return apps, nil
+}
+
+type ServiceBindings struct {
+	ServiceInstanceGUID string
+}
+
+func (api *APIHelper) GetServiceBindings(serviceBindingsURL string) ([]ServiceBindings, error) {
+	appsJSON, err := cfcurl.Curl(api.cli, serviceBindingsURL)
+	if nil != err {
+		return nil, err
+	}
+	sbs := []ServiceBindings{}
+	for _, a := range appsJSON["resources"].([]interface{}) {
+		theSvc := a.(map[string]interface{})
+		entity := theSvc["entity"].(map[string]interface{})
+		sbs = append(sbs,
+			ServiceBindings{
+				ServiceInstanceGUID: entity["service_instance_guid"].(string),
+			})
+	}
+	return sbs, nil
+}
+
+// ------
+
+type ServiceInstance struct {
+	GUID            string
+	Name            string
+	Type            string
+	ServicePlanGUID string
+}
+
+// GetServiceInstanceMap returns a map from Service Instance GUID to a Service Instance.
+func (api *APIHelper) GetServiceInstanceMap(siURL string) (map[string]ServiceInstance, error) {
+	siJSON, err := cfcurl.Curl(api.cli, "/v2/service_instances")
+	if nil != err {
+		return nil, err
+	}
+
+	simap := make(map[string]ServiceInstance, 32)
+
+	for _, a := range siJSON["resources"].([]interface{}) {
+		theSvc := a.(map[string]interface{})
+
+		meta := theSvc["metadata"].(map[string]interface{})
+		entity := theSvc["entity"].(map[string]interface{})
+
+		simap[meta["guid"].(string)] = ServiceInstance{
+			GUID:            meta["guid"].(string),
+			Name:            entity["name"].(string),
+			Type:            entity["type"].(string),
+			ServicePlanGUID: entity["service_plan_guid"].(string),
+		}
+	}
+	return simap, nil
+}
+
+type ServicePlan struct {
+	GUID        string // ServicePlan GUID
+	ServiceGUID string
+}
+
+// GetServicePlanMap maps a ServicePlan GUID to a Service GUID.
+func (api *APIHelper) GetServicePlanMap() (map[string]ServicePlan, error) {
+	spJSON, err := cfcurl.Curl(api.cli, "/v2/service_plans")
+	if nil != err {
+		return nil, err
+	}
+
+	spMap := make(map[string]ServicePlan, 32)
+
+	for _, a := range spJSON["resources"].([]interface{}) {
+		theSvc := a.(map[string]interface{})
+
+		meta := theSvc["metadata"].(map[string]interface{})
+		entity := theSvc["entity"].(map[string]interface{})
+
+		spMap[meta["guid"].(string)] = ServicePlan{
+			GUID:        meta["guid"].(string),
+			ServiceGUID: entity["service_guid"].(string),
+		}
+	}
+	return spMap, nil
+}
+
+type Service struct {
+	GUID  string // Service GUID
+	Label string // name of the service (starts with p- in case it is a Pivotal service)
+}
+
+// GetServiceMap maps a Service GUID to a Service Name (label).
+func (api *APIHelper) GetServiceMap() (map[string]Service, error) {
+	siJSON, err := cfcurl.Curl(api.cli, "/v2/services")
+	if nil != err {
+		return nil, err
+	}
+
+	simap := make(map[string]Service, 32)
+
+	for _, a := range siJSON["resources"].([]interface{}) {
+		theSvc := a.(map[string]interface{})
+
+		meta := theSvc["metadata"].(map[string]interface{})
+		entity := theSvc["entity"].(map[string]interface{})
+
+		simap[meta["guid"].(string)] = Service{
+			GUID:  meta["guid"].(string),
+			Label: entity["label"].(string),
+		}
+	}
+	return simap, nil
+}
+
+type UserProvidedService struct {
+	GUID string
+	Type string
+}
+
+func (api *APIHelper) GetUserProvidedServiceMap() (map[string]UserProvidedService, error) {
+	siJSON, err := cfcurl.Curl(api.cli, "/v2/user_provided_service_instances")
+	if nil != err {
+		return nil, err
+	}
+
+	simap := make(map[string]UserProvidedService, 32)
+
+	for _, a := range siJSON["resources"].([]interface{}) {
+		theSvc := a.(map[string]interface{})
+
+		meta := theSvc["metadata"].(map[string]interface{})
+		entity := theSvc["entity"].(map[string]interface{})
+
+		simap[meta["guid"].(string)] = UserProvidedService{
+			GUID: meta["guid"].(string),
+			Type: entity["type"].(string),
+		}
+	}
+	return simap, nil
 }

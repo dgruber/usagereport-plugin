@@ -21,8 +21,8 @@ var _ = Describe("Models", func() {
 					Spaces: []Space{Space{
 						Name: "test-space",
 						Apps: []App{
-							App{Ram: 128, Instances: 2, Running: true},
-							App{Ram: 128, Instances: 1, Running: false},
+							App{Ram: 128, Instances: 2, Running: true, SiTotal: 10, SiPCF: 6, SiUP: 2, Name: "sample"},
+							App{Ram: 128, Instances: 1, Running: false, SiTotal: 4, SiPCF: 2, SiUP: 0, Name: "test"},
 						},
 					},
 					},
@@ -46,4 +46,21 @@ var _ = Describe("Models", func() {
 			Expect(report.String()).To(Equal(string(expectedOutput)))
 		})
 	})
+
+	Describe("Services#CSV", func() {
+		It("should return csv formated string", func() {
+			expectedOutput, err := ioutil.ReadFile("fixtures/services.csv")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(report.ServiceInstanceReportCSV()).To(Equal(string(expectedOutput)))
+		})
+	})
+
+	Describe("Services#String", func() {
+		It("should return string formated string", func() {
+			expectedOutput, err := ioutil.ReadFile("fixtures/services.txt")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(report.ServiceInstanceReportString()).To(Equal(string(expectedOutput)))
+		})
+	})
+
 })

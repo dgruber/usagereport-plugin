@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry/cli/plugin"
 	"github.com/krujos/usagereport-plugin/apihelper"
 	"github.com/krujos/usagereport-plugin/models"
+	"strings"
 )
 
 //UsageReportCmd the plugin
@@ -17,8 +18,10 @@ type UsageReportCmd struct {
 
 // contains CLI flag values
 type flagVal struct {
-	OrgName string
-	Format  string
+	OrgName              string
+	SpaceName            string
+	Format               string
+	ShowServiceInstances bool
 }
 
 func ParseFlags(args []string) flagVal {
@@ -26,16 +29,19 @@ func ParseFlags(args []string) flagVal {
 
 	// Create flags
 	orgName := flagSet.String("o", "", "-o orgName")
+	spaceName := flagSet.String("s", "", "-s spaceName")
+	showSI := flagSet.Bool("i", false, "-i <true|false>")
 	format := flagSet.String("f", "format", "-f <csv>")
 
 	err := flagSet.Parse(args[1:])
 	if err != nil {
-
 	}
 
 	return flagVal{
-		OrgName: string(*orgName),
-		Format:  string(*format),
+		OrgName:              string(*orgName),
+		SpaceName:            string(*spaceName),
+		Format:               string(*format),
+		ShowServiceInstances: bool(*showSI),
 	}
 }
 
@@ -45,17 +51,19 @@ func (cmd *UsageReportCmd) GetMetadata() plugin.PluginMetadata {
 		Name: "usage-report",
 		Version: plugin.VersionType{
 			Major: 1,
-			Minor: 4,
-			Build: 1,
+			Minor: 5,
+			Build: 0,
 		},
 		Commands: []plugin.Command{
 			{
 				Name:     "usage-report",
 				HelpText: "Report AI and memory usage for orgs and spaces",
 				UsageDetails: plugin.Usage{
-					Usage: "cf usage-report [-o orgName] [-f <csv>]",
+					Usage: "cf usage-report [-o orgName] [-s spaceName] [-i <show service instances>] [-f <csv>]",
 					Options: map[string]string{
 						"o": "organization",
+						"s": "space",
+						"i": "serviceInstances",
 						"f": "format",
 					},
 				},
@@ -64,35 +72,48 @@ func (cmd *UsageReportCmd) GetMetadata() plugin.PluginMetadata {
 	}
 }
 
-//UsageReportCommand doer
-func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
-	flagVals := ParseFlags(args)
-
+func (cmd *UsageReportCmd) getFilteredOrgs(orgName string) []models.Org {
 	var orgs []models.Org
-	var err error
-	var report models.Report
 
-	if flagVals.OrgName != "" {
-		org, err := cmd.getOrg(flagVals.OrgName)
+	if orgName != "" {
+		org, err := cmd.getOrg(orgName)
 		if nil != err {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 		orgs = append(orgs, org)
 	} else {
+		var err error
 		orgs, err = cmd.getOrgs()
 		if nil != err {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 	}
+	return orgs
+}
 
-	report.Orgs = orgs
+//UsageReportCommand doer
+func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
+	flagVals := ParseFlags(args)
 
-	if flagVals.Format == "csv" {
-		fmt.Println(report.CSV())
+	var report models.Report
+
+	report.Orgs = cmd.getFilteredOrgs(flagVals.OrgName)
+
+	// process service instances
+	if flagVals.ShowServiceInstances {
+		if flagVals.Format == "csv" {
+			fmt.Println(report.ServiceInstanceReportCSV())
+		} else {
+			fmt.Println(report.ServiceInstanceReportString())
+		}
 	} else {
-		fmt.Println(report.String())
+		if flagVals.Format == "csv" {
+			fmt.Println(report.CSV())
+		} else {
+			fmt.Println(report.String())
+		}
 	}
 }
 
@@ -166,17 +187,80 @@ func (cmd *UsageReportCmd) getSpaces(spaceURL string) ([]models.Space, error) {
 	return spaces, nil
 }
 
+// IsPCFInstance checks if a particular service instance is using a PCF service.
+func IsPCFInstance(serviceInstanceGUID string, siMap map[string]apihelper.ServiceInstance, spMap map[string]apihelper.ServicePlan, sMap map[string]apihelper.Service) bool {
+	if serviceInstance, exists := siMap[serviceInstanceGUID]; exists == false {
+		return false
+	} else if servicePlan, exists := spMap[serviceInstance.ServicePlanGUID]; exists == false {
+		return false
+	} else if service, exists := sMap[servicePlan.ServiceGUID]; exists == false {
+		return false
+	} else {
+		return strings.HasPrefix(service.Label, "p-")
+	}
+}
+
 func (cmd *UsageReportCmd) getApps(appsURL string) ([]models.App, error) {
 	rawApps, err := cmd.apiHelper.GetSpaceApps(appsURL)
 	if nil != err {
 		return nil, err
 	}
+
+	// get service instances
+	siMap, err := cmd.apiHelper.GetServiceInstanceMap("/v2/service_instances")
+	if err != nil {
+		return nil, err
+	}
+
+	// get service plan map
+	spMap, err := cmd.apiHelper.GetServicePlanMap()
+	if err != nil {
+		return nil, err
+	}
+
+	// get services (for determining the p-)
+	sMap, err := cmd.apiHelper.GetServiceMap()
+	if err != nil {
+		return nil, err
+	}
+
+	upsMap, err := cmd.apiHelper.GetUserProvidedServiceMap()
+	if err != nil {
+		return nil, err
+	}
+
 	var apps = []models.App{}
 	for _, a := range rawApps {
+
+		sb, err := cmd.apiHelper.GetServiceBindings(a.ServiceBindingsURL)
+		if err != nil {
+			return nil, err
+		}
+
+		siTotal := len(sb)
+		siPCF := 0 // PCF service instances
+		siUP := 0  // User Provided Service Instances
+
+		for _, binding := range sb {
+			if si, exists := siMap[binding.ServiceInstanceGUID]; exists {
+				if si.Type == "managed_service_instance" {
+					if IsPCFInstance(binding.ServiceInstanceGUID, siMap, spMap, sMap) {
+						siPCF++
+					}
+				}
+			} else if _, exists := upsMap[binding.ServiceInstanceGUID]; exists {
+				siUP++
+			}
+		}
+
 		apps = append(apps, models.App{
 			Instances: int(a.Instances),
 			Ram:       int(a.RAM),
 			Running:   a.Running,
+			Name:      a.Name,
+			SiTotal:   siTotal,
+			SiPCF:     siPCF,
+			SiUP:      siUP,
 		})
 	}
 	return apps, nil

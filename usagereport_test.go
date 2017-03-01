@@ -143,4 +143,37 @@ var _ = Describe("Usagereport", func() {
 			Expect(apps[1].Running).To(BeFalse())
 		})
 	})
+
+	Describe("Test PCF service type discovery", func() {
+
+		var siMap map[string]apihelper.ServiceInstance
+		var spMap map[string]apihelper.ServicePlan
+		var sMap map[string]apihelper.Service
+
+		BeforeEach(func() {
+			siMap = make(map[string]apihelper.ServiceInstance)
+			spMap = make(map[string]apihelper.ServicePlan)
+			sMap = make(map[string]apihelper.Service)
+
+			// this is a PCF service
+			siMap["123"] = apihelper.ServiceInstance{ServicePlanGUID: "234"}
+			spMap["234"] = apihelper.ServicePlan{ServiceGUID: "345"}
+			sMap["345"] = apihelper.Service{GUID: "345", Label: "p-mysql"}
+
+			// this is not a PCF service
+			siMap["!123"] = apihelper.ServiceInstance{ServicePlanGUID: "!234"}
+			spMap["!234"] = apihelper.ServicePlan{ServiceGUID: "!345"}
+			sMap["!345"] = apihelper.Service{GUID: "!345", Label: "mysql"}
+		})
+
+		It("Should return true if a PCF service is discovered", func() {
+			Expect(IsPCFInstance("123", siMap, spMap, sMap)).To(BeTrue())
+		})
+
+		It("Should return false if a PCF service is discovered", func() {
+			Expect(IsPCFInstance("!123", siMap, spMap, sMap)).To(BeFalse())
+		})
+
+	})
+
 })

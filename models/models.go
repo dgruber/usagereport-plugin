@@ -23,6 +23,10 @@ type App struct {
 	Ram       int
 	Instances int
 	Running   bool
+	Name      string
+	SiTotal   int // Bound Service Instances Total
+	SiPCF     int // Bound PCF Service Instances
+	SiUP      int // Bound User Provided Service Instances
 }
 
 type Report struct {
@@ -81,6 +85,51 @@ func (space *Space) RunningInstancesCount() int {
 		}
 	}
 	return runningInstancesCount
+}
+
+type ServiceInstance struct {
+	GUID string
+	Name string
+	Type string
+}
+
+func (report *Report) ServiceInstanceReportCSV() string {
+	var response bytes.Buffer
+
+	response.WriteString(fmt.Sprintf("Org,Space,AppName,Instances,Bound Service Instances,Bound PCF Services,Bound User Provided Services,Bound 3rd Party Services\n"))
+
+	for _, org := range report.Orgs {
+		for _, space := range org.Spaces {
+			for _, app := range space.Apps {
+				thrdParty := app.SiTotal - app.SiPCF - app.SiUP
+				record := fmt.Sprintf("%s,%s,%s,%d,%d,%d,%d,%d\n", org.Name, space.Name, app.Name, app.Instances, app.SiTotal, app.SiPCF, app.SiUP, thrdParty)
+				response.WriteString(record)
+			}
+		}
+	}
+
+	return response.String()
+}
+
+func (report *Report) ServiceInstanceReportString() string {
+	var response bytes.Buffer
+
+	for _, org := range report.Orgs {
+		response.WriteString(fmt.Sprintf("Org %s\n", org.Name))
+		for _, space := range org.Spaces {
+			response.WriteString(fmt.Sprintf("\tSpace %s\n", space.Name))
+			for _, app := range space.Apps {
+				thrdParty := app.SiTotal - app.SiPCF - app.SiUP
+
+				response.WriteString(fmt.Sprintf("\t\tApp %s has %d instances in total.\n", app.Name, app.Instances))
+				response.WriteString(fmt.Sprintf("\t\tIt has %d service instances bound in total.\n", app.SiTotal))
+				response.WriteString(fmt.Sprintf("\t\tFrom that there are %d PCF service instances, %d user provided service instances,\n", app.SiPCF, app.SiUP))
+				response.WriteString(fmt.Sprintf("\t\tand %d 3rd party instances bound.\n\n", thrdParty))
+			}
+		}
+	}
+
+	return response.String()
 }
 
 func (report *Report) String() string {
