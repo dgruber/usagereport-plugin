@@ -57,6 +57,36 @@ type FakeCFAPIHelper struct {
 		result1 []apihelper.App
 		result2 error
 	}
+	GetServiceBindingsStub    func() ([]apihelper.ServiceBindings, error)
+	getServiceBindingsMutex   sync.RWMutex
+	getServiceBindingsReturns struct {
+		result1 []apihelper.ServiceBindings
+		result2 error
+	}
+	GetServiceInstanceMapStub    func() (map[string]apihelper.ServiceInstance, error)
+	getServiceInstanceMapMutex   sync.RWMutex
+	getServiceInstanceMapReturns struct {
+		result1 map[string]apihelper.ServiceInstance
+		result2 error
+	}
+	GetServiceMapStub    func() (map[string]apihelper.Service, error)
+	getServiceMapMutex   sync.RWMutex
+	getServiceMapReturns struct {
+		result1 map[string]apihelper.Service
+		result2 error
+	}
+	GetServicePlanMapStub    func() (map[string]apihelper.ServicePlan, error)
+	getServicePlanMapMutex   sync.RWMutex
+	getServicePlanMapReturns struct {
+		result1 map[string]apihelper.ServicePlan
+		result2 error
+	}
+	GetUserProvidedServiceMapStub    func() (map[string]apihelper.UserProvidedService, error)
+	getUserProvidedServiceMapMutex   sync.RWMutex
+	getUserProvidedServiceMapReturns struct {
+		result1 map[string]apihelper.UserProvidedService
+		result2 error
+	}
 }
 
 func (fake *FakeCFAPIHelper) GetOrgs() ([]apihelper.Organization, error) {
@@ -228,23 +258,33 @@ func (fake *FakeCFAPIHelper) GetSpaceAppsReturns(result1 []apihelper.App, result
 }
 
 func (fake *FakeCFAPIHelper) GetServiceBindings(url string) ([]apihelper.ServiceBindings, error) {
-	return nil, nil
+	fake.getServiceBindingsMutex.Lock()
+	defer fake.getServiceBindingsMutex.RUnlock()
+	return fake.getServiceBindingsReturns.result1, fake.getServiceBindingsReturns.result2
 }
 
 func (fake *FakeCFAPIHelper) GetServiceInstanceMap(url string) (map[string]apihelper.ServiceInstance, error) {
-	return nil, nil
+	fake.getServiceInstanceMapMutex.Lock()
+	defer fake.getServiceInstanceMapMutex.RUnlock()
+	return fake.getServiceInstanceMapMutexReturns.result1, fake.getServiceInstanceMapMutexReturns.result2
 }
 
 func (fake *FakeCFAPIHelper) GetServiceMap() (map[string]apihelper.Service, error) {
-	return nil, nil
+	fake.getServiceMapMutex.Lock()
+	defer fake.getServiceMapMutex.RUnlock()
+	return fake.getServiceeMapMutexReturns.result1, fake.getServiceMapMutexReturns.result2
 }
 
 func (fake *FakeCFAPIHelper) GetServicePlanMap() (map[string]apihelper.ServicePlan, error) {
-	return nil, nil
+	fake.getServicePlaneMapMutex.Lock()
+	defer fake.getServicePlanMapMutex.RUnlock()
+	return fake.getServicePlanMapMutexReturns.result1, fake.getServicePlanMapMutexReturns.result2
 }
 
 func (fake *FakeCFAPIHelper) GetUserProvidedServiceMap() (map[string]apihelper.UserProvidedService, error) {
-	return nil, nil
+	fake.getUserProvidedServiceMapMutex.Lock()
+	defer fake.getUserProvidedServiceMapMutex.RUnlock()
+	return fake.getUserProvidedServiceMapMutexReturns.result1, fake.getUserProvidedServiceMapMutexReturns.result2
 }
 
 var _ apihelper.CFAPIHelper = new(FakeCFAPIHelper)

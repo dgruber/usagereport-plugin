@@ -1,0 +1,12 @@
+Org test-org
+	Space test-space
+		App sample has 2 instances in total.
+		It has 10 service instances bound in total.
+		From that there are 6 PCF service instances, 2 user provided service instances,
+		and 2 3rd party instances bound.
+
+		App test has 1 instances in total.
+		It has 4 service instances bound in total.
+		From that there are 2 PCF service instances, 0 user provided service instances,
+		and 2 3rd party instances bound.
+

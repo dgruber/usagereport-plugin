@@ -200,9 +200,10 @@ var _ = Describe("UsageReport", func() {
 			Expect(err).ToNot(BeNil())
 		})
 
-		It("should return one one service binding with the service instance GUID to be set", func() {
+		It("should return one service binding with the service instance GUID to be set", func() {
 			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(sbJSON, nil)
-			bindings, _ := api.GetServiceBindings("/v2/whateverapps")
+			bindings, err := api.GetServiceBindings("/v2/whateverapps")
+			Expect(err).To(BeNil())
 			Expect(len(bindings)).To(Equal(1))
 			Expect(bindings[0].ServiceInstanceGUID).To(Equal("92f0f510-dbb1-4c04-aa7c-28a8dc0797b4"))
 		})
@@ -246,7 +247,7 @@ var _ = Describe("UsageReport", func() {
 
 		It("should return an error when the service plan url fails", func() {
 			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
-			_, err := api.GetServiceInstanceMap("/v2/whateverapps")
+			_, err := api.GetServicePlanMap()
 			Expect(err).ToNot(BeNil())
 		})
 
