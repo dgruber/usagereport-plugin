@@ -11,9 +11,17 @@ import (
 	"strings"
 )
 
+type globalQueryCache struct {
+	siMap  map[string]apihelper.ServiceInstance
+	spMap  map[string]apihelper.ServicePlan
+	sMap   map[string]apihelper.Service
+	upsMap map[string]apihelper.UserProvidedService
+}
+
 //UsageReportCmd the plugin
 type UsageReportCmd struct {
-	apiHelper apihelper.CFAPIHelper
+	apiHelper  apihelper.CFAPIHelper
+	queryCache globalQueryCache
 }
 
 // contains CLI flag values
@@ -43,6 +51,40 @@ func ParseFlags(args []string) flagVal {
 		Format:               string(*format),
 		ShowServiceInstances: bool(*showSI),
 	}
+}
+
+// createQueryCache makes global REST queries just once
+func (cmd *UsageReportCmd) createQueryCache() error {
+	// get service instances
+	siMap, err := cmd.apiHelper.GetServiceInstanceMap("/v2/service_instances")
+	if err != nil {
+		return err
+	}
+
+	// get service plan map
+	spMap, err := cmd.apiHelper.GetServicePlanMap()
+	if err != nil {
+		return err
+	}
+
+	// get services (for determining the p-)
+	sMap, err := cmd.apiHelper.GetServiceMap()
+	if err != nil {
+		return err
+	}
+
+	upsMap, err := cmd.apiHelper.GetUserProvidedServiceMap()
+	if err != nil {
+		return err
+	}
+
+	cmd.queryCache = globalQueryCache{
+		siMap:  siMap,
+		spMap:  spMap,
+		sMap:   sMap,
+		upsMap: upsMap,
+	}
+	return nil
 }
 
 //GetMetadata returns metatada
@@ -118,6 +160,10 @@ func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
 }
 
 func (cmd *UsageReportCmd) getOrgs() ([]models.Org, error) {
+	if err := cmd.createQueryCache(); err != nil {
+		return nil, err
+	}
+
 	rawOrgs, err := cmd.apiHelper.GetOrgs()
 	if nil != err {
 		return nil, err
@@ -171,6 +217,7 @@ func (cmd *UsageReportCmd) getSpaces(spaceURL string) ([]models.Space, error) {
 	if nil != err {
 		return nil, err
 	}
+
 	var spaces = []models.Space{}
 	for _, s := range rawSpaces {
 		apps, err := cmd.getApps(s.AppsURL)
@@ -206,32 +253,10 @@ func (cmd *UsageReportCmd) getApps(appsURL string) ([]models.App, error) {
 		return nil, err
 	}
 
-	// get service instances
-	siMap, err := cmd.apiHelper.GetServiceInstanceMap("/v2/service_instances")
-	if err != nil {
-		return nil, err
-	}
-
-	// get service plan map
-	spMap, err := cmd.apiHelper.GetServicePlanMap()
-	if err != nil {
-		return nil, err
-	}
-
-	// get services (for determining the p-)
-	sMap, err := cmd.apiHelper.GetServiceMap()
-	if err != nil {
-		return nil, err
-	}
-
-	upsMap, err := cmd.apiHelper.GetUserProvidedServiceMap()
-	if err != nil {
-		return nil, err
-	}
-
 	var apps = []models.App{}
 	for _, a := range rawApps {
 
+		// TODO check if that is available globally and can be cached
 		sb, err := cmd.apiHelper.GetServiceBindings(a.ServiceBindingsURL)
 		if err != nil {
 			return nil, err
@@ -242,13 +267,13 @@ func (cmd *UsageReportCmd) getApps(appsURL string) ([]models.App, error) {
 		siUP := 0  // User Provided Service Instances
 
 		for _, binding := range sb {
-			if si, exists := siMap[binding.ServiceInstanceGUID]; exists {
+			if si, exists := cmd.queryCache.siMap[binding.ServiceInstanceGUID]; exists {
 				if si.Type == "managed_service_instance" {
-					if IsPCFInstance(binding.ServiceInstanceGUID, siMap, spMap, sMap) {
+					if IsPCFInstance(binding.ServiceInstanceGUID, cmd.queryCache.siMap, cmd.queryCache.spMap, cmd.queryCache.sMap) {
 						siPCF++
 					}
 				}
-			} else if _, exists := upsMap[binding.ServiceInstanceGUID]; exists {
+			} else if _, exists := cmd.queryCache.upsMap[binding.ServiceInstanceGUID]; exists {
 				siUP++
 			}
 		}
