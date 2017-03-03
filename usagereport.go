@@ -33,16 +33,22 @@ type flagVal struct {
 }
 
 func ParseFlags(args []string) flagVal {
-	flagSet := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	flagSet := flag.NewFlagSet(args[0], flag.ExitOnError)
 
 	// Create flags
 	orgName := flagSet.String("o", "", "-o orgName")
 	spaceName := flagSet.String("s", "", "-s spaceName")
 	showSI := flagSet.String("i", "", "-i <app|summary>")
-	format := flagSet.String("f", "format", "-f <csv>")
+	format := flagSet.String("f", "format", "-f csv")
 
 	err := flagSet.Parse(args[1:])
 	if err != nil {
+		os.Exit(2)
+	}
+
+	if *showSI != "" && *showSI != "app" && *showSI != "summary" {
+		fmt.Fprintf(os.Stderr, "-i requires to be either \"app\" or \"summary\" if set.\n")
+		os.Exit(2)
 	}
 
 	return flagVal{
@@ -103,10 +109,10 @@ func (cmd *UsageReportCmd) GetMetadata() plugin.PluginMetadata {
 				UsageDetails: plugin.Usage{
 					Usage: "cf usage-report [-o orgName] [-s spaceName] [-i <app|summary>] [-f <csv>]",
 					Options: map[string]string{
-						"o": "organization",
-						"s": "space",
-						"i": "serviceInstances",
-						"f": "format",
+						"o": "Filter for Specific Orgranization",
+						"s": "Filter for Specific Space",
+						"i": "Count Service Instances",
+						"f": "Define Output Format (csv)",
 					},
 				},
 			},
