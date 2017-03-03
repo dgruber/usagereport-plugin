@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	// "github.com/cloudfoundry/cli/plugin"
-	"github.com/krujos/usagereport-plugin/apihelper"
+	"github.com/dgruber/usagereport-plugin/apihelper"
 )
 
 type FakeCFAPIHelper struct {
@@ -258,33 +258,33 @@ func (fake *FakeCFAPIHelper) GetSpaceAppsReturns(result1 []apihelper.App, result
 }
 
 func (fake *FakeCFAPIHelper) GetServiceBindings(url string) ([]apihelper.ServiceBindings, error) {
-	fake.getServiceBindingsMutex.Lock()
+	fake.getServiceBindingsMutex.RLock()
 	defer fake.getServiceBindingsMutex.RUnlock()
 	return fake.getServiceBindingsReturns.result1, fake.getServiceBindingsReturns.result2
 }
 
-func (fake *FakeCFAPIHelper) GetServiceInstanceMap(url string) (map[string]apihelper.ServiceInstance, error) {
-	fake.getServiceInstanceMapMutex.Lock()
+func (fake *FakeCFAPIHelper) GetServiceInstanceMap() (map[string]apihelper.ServiceInstance, error) {
+	fake.getServiceInstanceMapMutex.RLock()
 	defer fake.getServiceInstanceMapMutex.RUnlock()
-	return fake.getServiceInstanceMapMutexReturns.result1, fake.getServiceInstanceMapMutexReturns.result2
+	return fake.getServiceInstanceMapReturns.result1, fake.getServiceInstanceMapReturns.result2
 }
 
 func (fake *FakeCFAPIHelper) GetServiceMap() (map[string]apihelper.Service, error) {
-	fake.getServiceMapMutex.Lock()
+	fake.getServiceMapMutex.RLock()
 	defer fake.getServiceMapMutex.RUnlock()
-	return fake.getServiceeMapMutexReturns.result1, fake.getServiceMapMutexReturns.result2
+	return fake.getServiceMapReturns.result1, fake.getServiceMapReturns.result2
 }
 
 func (fake *FakeCFAPIHelper) GetServicePlanMap() (map[string]apihelper.ServicePlan, error) {
-	fake.getServicePlaneMapMutex.Lock()
+	fake.getServicePlanMapMutex.RLock()
 	defer fake.getServicePlanMapMutex.RUnlock()
-	return fake.getServicePlanMapMutexReturns.result1, fake.getServicePlanMapMutexReturns.result2
+	return fake.getServicePlanMapReturns.result1, fake.getServicePlanMapReturns.result2
 }
 
 func (fake *FakeCFAPIHelper) GetUserProvidedServiceMap() (map[string]apihelper.UserProvidedService, error) {
-	fake.getUserProvidedServiceMapMutex.Lock()
+	fake.getUserProvidedServiceMapMutex.RLock()
 	defer fake.getUserProvidedServiceMapMutex.RUnlock()
-	return fake.getUserProvidedServiceMapMutexReturns.result1, fake.getUserProvidedServiceMapMutexReturns.result2
+	return fake.getUserProvidedServiceMapReturns.result1, fake.getUserProvidedServiceMapReturns.result2
 }
 
 var _ apihelper.CFAPIHelper = new(FakeCFAPIHelper)

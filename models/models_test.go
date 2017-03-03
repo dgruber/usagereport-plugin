@@ -1,7 +1,7 @@
 package models_test
 
 import (
-	. "github.com/krujos/usagereport-plugin/models"
+	. "github.com/dgruber/usagereport-plugin/models"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

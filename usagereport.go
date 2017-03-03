@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/cloudfoundry/cli/plugin"
-	"github.com/krujos/usagereport-plugin/apihelper"
-	"github.com/krujos/usagereport-plugin/models"
+	"github.com/dgruber/usagereport-plugin/apihelper"
+	"github.com/dgruber/usagereport-plugin/models"
 	"strings"
 )
 
@@ -29,7 +29,7 @@ type flagVal struct {
 	OrgName              string
 	SpaceName            string
 	Format               string
-	ShowServiceInstances bool
+	ShowServiceInstances string
 }
 
 func ParseFlags(args []string) flagVal {
@@ -38,7 +38,7 @@ func ParseFlags(args []string) flagVal {
 	// Create flags
 	orgName := flagSet.String("o", "", "-o orgName")
 	spaceName := flagSet.String("s", "", "-s spaceName")
-	showSI := flagSet.Bool("i", false, "-i <true|false>")
+	showSI := flagSet.String("i", "", "-i <app|summary>")
 	format := flagSet.String("f", "format", "-f <csv>")
 
 	err := flagSet.Parse(args[1:])
@@ -49,14 +49,14 @@ func ParseFlags(args []string) flagVal {
 		OrgName:              string(*orgName),
 		SpaceName:            string(*spaceName),
 		Format:               string(*format),
-		ShowServiceInstances: bool(*showSI),
+		ShowServiceInstances: string(*showSI),
 	}
 }
 
 // createQueryCache makes global REST queries just once
 func (cmd *UsageReportCmd) createQueryCache() error {
 	// get service instances
-	siMap, err := cmd.apiHelper.GetServiceInstanceMap("/v2/service_instances")
+	siMap, err := cmd.apiHelper.GetServiceInstanceMap()
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (cmd *UsageReportCmd) GetMetadata() plugin.PluginMetadata {
 				Name:     "usage-report",
 				HelpText: "Report AI and memory usage for orgs and spaces",
 				UsageDetails: plugin.Usage{
-					Usage: "cf usage-report [-o orgName] [-s spaceName] [-i <show service instances>] [-f <csv>]",
+					Usage: "cf usage-report [-o orgName] [-s spaceName] [-i <app|summary>] [-f <csv>]",
 					Options: map[string]string{
 						"o": "organization",
 						"s": "space",
@@ -144,12 +144,14 @@ func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
 	report.Orgs = cmd.getFilteredOrgs(flagVals.OrgName)
 
 	// process service instances
-	if flagVals.ShowServiceInstances {
+	if flagVals.ShowServiceInstances == "app" {
 		if flagVals.Format == "csv" {
 			fmt.Println(report.ServiceInstanceReportCSV())
 		} else {
 			fmt.Println(report.ServiceInstanceReportString())
 		}
+	} else if flagVals.ShowServiceInstances == "summary" {
+		fmt.Println("TODO")
 	} else {
 		if flagVals.Format == "csv" {
 			fmt.Println(report.CSV())

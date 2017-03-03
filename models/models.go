@@ -33,6 +33,21 @@ type Report struct {
 	Orgs []Org
 }
 
+type ServiceInstance struct {
+	GUID string
+	Name string
+	Type string
+}
+
+type Instance struct {
+	Name        string
+	Service     string
+	ServicePlan string
+	Space       string
+	Type        string
+	BoundApps   int
+}
+
 func (org *Org) InstancesCount() int {
 	instancesCount := 0
 	for _, space := range org.Spaces {
@@ -87,10 +102,23 @@ func (space *Space) RunningInstancesCount() int {
 	return runningInstancesCount
 }
 
-type ServiceInstance struct {
-	GUID string
-	Name string
-	Type string
+func (report *Report) ServiceInstanceSummaryCSV() string {
+	// service instance name, Service name (market place), plan, bound apps
+	var response bytes.Buffer
+
+	response.WriteString(fmt.Sprintf("Service Instance Name,Service Name,Plan,Bound Apps\n"))
+
+	for _, org := range report.Orgs {
+		for _, space := range org.Spaces {
+			for _, app := range space.Apps {
+				thrdParty := app.SiTotal - app.SiPCF - app.SiUP
+				record := fmt.Sprintf("%s,%s,%s,%d,%d,%d,%d,%d\n", org.Name, space.Name, app.Name, app.Instances, app.SiTotal, app.SiPCF, app.SiUP, thrdParty)
+				response.WriteString(record)
+			}
+		}
+	}
+
+	return response.String()
 }
 
 func (report *Report) ServiceInstanceReportCSV() string {

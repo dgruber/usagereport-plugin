@@ -219,13 +219,13 @@ var _ = Describe("UsageReport", func() {
 
 		It("should return an error when the service instance url fails", func() {
 			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
-			_, err := api.GetServiceInstanceMap("/v2/whateverapps")
+			_, err := api.GetServiceInstanceMap()
 			Expect(err).ToNot(BeNil())
 		})
 
 		It("should return a map containing a specific element with all entries set", func() {
 			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(serviceInstancesJSON, nil)
-			siMap, err := api.GetServiceInstanceMap("/v2/whateverapps")
+			siMap, err := api.GetServiceInstanceMap()
 
 			Expect(err).To(BeNil())
 			Expect(siMap).NotTo(BeNil())
@@ -276,7 +276,7 @@ var _ = Describe("UsageReport", func() {
 
 		It("should return an error when the services url fails", func() {
 			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
-			_, err := api.GetServiceInstanceMap("/v2/whateverapps")
+			_, err := api.GetServiceInstanceMap()
 			Expect(err).ToNot(BeNil())
 		})
 

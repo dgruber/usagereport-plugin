@@ -45,8 +45,8 @@ type CFAPIHelper interface {
 	GetOrgMemoryUsage(Organization) (float64, error)
 	GetOrgSpaces(string) ([]Space, error)
 	GetSpaceApps(string) ([]App, error)
-	GetServiceBindings(serviceBindingsURL string) ([]ServiceBindings, error)
-	GetServiceInstanceMap(siURL string) (map[string]ServiceInstance, error)
+	GetServiceBindings(string) ([]ServiceBindings, error)
+	GetServiceInstanceMap() (map[string]ServiceInstance, error)
 	GetServiceMap() (map[string]Service, error)
 	GetServicePlanMap() (map[string]ServicePlan, error)
 	GetUserProvidedServiceMap() (map[string]UserProvidedService, error)
@@ -211,7 +211,7 @@ type ServiceInstance struct {
 }
 
 // GetServiceInstanceMap returns a map from Service Instance GUID to a Service Instance.
-func (api *APIHelper) GetServiceInstanceMap(siURL string) (map[string]ServiceInstance, error) {
+func (api *APIHelper) GetServiceInstanceMap() (map[string]ServiceInstance, error) {
 	siJSON, err := cfcurl.Curl(api.cli, "/v2/service_instances")
 	if nil != err {
 		return nil, err

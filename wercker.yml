@@ -9,7 +9,7 @@ build:
     # Sets the go workspace and places you package
     # at the right place in the workspace tree
     - wercker/setup-go-workspace:
-       package-dir: github.com/krujos/usagereport-plugin
+       package-dir: github.com/dgruber/usagereport-plugin
 
     - script:
         name: Get dependencies
