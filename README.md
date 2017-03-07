@@ -17,7 +17,7 @@ DataFlow,Test,rabbit,managed_service_instance,p-rabbitmq,standard,1,6ed59f50-dd0
 DataFlow,Test,my_mysql,managed_service_instance,p-mysql,100mb,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
 AES,Dev,mysql,managed_service_instance,p-mysql,100mb,1,06ce0f19-0419-4b28-99a8-1cb48b973258
 AES,Dev,edgeTest,managed_service_instance,apigee-edge,org,0,
-```
+``
 
 For listing an app centric view of service instance usage:
 
@@ -36,8 +36,6 @@ apigee-cf-service-broker-org,apigee-cf-service-broker-space,apigee-cf-service-br
 DataFlow,Test,dataflow-server,1,3,3,0,0
 AES,Dev,aes,1,1,0,1,0
 AES,Dev,aesserver,1,0,0,0,0
-ESA,Dev,aes,1,0,0,0,0
-ESA,Dev,spring-music,1,2,1,1,0
 ```
 
 
