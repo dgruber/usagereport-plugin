@@ -19,6 +19,7 @@ type globalQueryCache struct {
 	spaceMap map[string]apihelper.SpaceDetails
 	orgMap   map[string]apihelper.OrgDetails
 	sbList   []apihelper.ServiceBinding
+	sbMap    map[string][]string
 }
 
 //UsageReportCmd the plugin
@@ -102,6 +103,17 @@ func (cmd *UsageReportCmd) createQueryCache() error {
 		return err
 	}
 
+	// create a map out of service binding list
+	sbMap := make(map[string][]string)
+	for _, v := range sbList {
+		if sb, exists := sbMap[v.AppGUID]; exists {
+			sb = append(sb, v.ServiceInstanceGUID)
+			sbMap[v.AppGUID] = sb
+		} else {
+			sbMap[v.AppGUID] = []string{v.ServiceInstanceGUID}
+		}
+	}
+
 	cmd.queryCache = globalQueryCache{
 		siMap:    siMap,
 		spMap:    spMap,
@@ -110,6 +122,7 @@ func (cmd *UsageReportCmd) createQueryCache() error {
 		spaceMap: spaceMap,
 		orgMap:   orgMap,
 		sbList:   sbList,
+		sbMap:    sbMap,
 	}
 	return nil
 }
@@ -306,23 +319,25 @@ func (cmd *UsageReportCmd) getApps(appsURL string) ([]models.App, error) {
 	for _, a := range rawApps {
 
 		// TODO check if that is available globally and can be cached
-		sb, err := cmd.apiHelper.GetServiceBindings(a.ServiceBindingsURL)
-		if err != nil {
-			return nil, err
-		}
+
+		sb := cmd.queryCache.sbMap[a.GUID]
+		// sb, err := cmd.apiHelper.GetServiceBindings(a.ServiceBindingsURL)
+		// if err != nil {
+		//	return nil, err
+		// }
 
 		siTotal := len(sb)
 		siPCF := 0 // PCF service instances
 		siUP := 0  // User Provided Service Instances
 
-		for _, binding := range sb {
-			if si, exists := cmd.queryCache.siMap[binding.ServiceInstanceGUID]; exists {
+		for _, serviceInstanceGUID := range sb {
+			if si, exists := cmd.queryCache.siMap[serviceInstanceGUID]; exists {
 				if si.Type == "managed_service_instance" {
-					if IsPCFInstance(binding.ServiceInstanceGUID, cmd.queryCache.siMap, cmd.queryCache.spMap, cmd.queryCache.sMap) {
+					if IsPCFInstance(serviceInstanceGUID, cmd.queryCache.siMap, cmd.queryCache.spMap, cmd.queryCache.sMap) {
 						siPCF++
 					}
 				}
-			} else if _, exists := cmd.queryCache.upsMap[binding.ServiceInstanceGUID]; exists {
+			} else if _, exists := cmd.queryCache.upsMap[serviceInstanceGUID]; exists {
 				siUP++
 			}
 		}

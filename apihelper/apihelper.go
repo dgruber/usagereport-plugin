@@ -35,6 +35,7 @@ type App struct {
 	Running            bool
 	Name               string
 	ServiceBindingsURL string
+	GUID               string
 }
 
 // CFAPIHelper to wrap cf curl results
@@ -170,6 +171,7 @@ func (api *APIHelper) GetSpaceApps(appsURL string) ([]App, error) {
 	apps := []App{}
 	for _, a := range appsJSON["resources"].([]interface{}) {
 		theApp := a.(map[string]interface{})
+		meta := theApp["metadata"].(map[string]interface{})
 		entity := theApp["entity"].(map[string]interface{})
 		apps = append(apps,
 			App{
@@ -178,6 +180,7 @@ func (api *APIHelper) GetSpaceApps(appsURL string) ([]App, error) {
 				Running:            "STARTED" == entity["state"].(string),
 				ServiceBindingsURL: entity["service_bindings_url"].(string),
 				Name:               entity["name"].(string),
+				GUID:               meta["guid"].(string),
 			})
 	}
 	return apps, nil
