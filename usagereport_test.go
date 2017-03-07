@@ -22,7 +22,7 @@ var _ = Describe("Usagereport", func() {
 	Describe("get single org errors", func() {
 		It("should return an error if cf curl /v2/organizations fails", func() {
 			fakeAPI.GetOrgReturns(apihelper.Organization{}, errors.New("Bad Things"))
-			_, err := cmd.getOrg("test")
+			_, err := cmd.getOrg("test", "")
 			Expect(err).ToNot(BeNil())
 		})
 	})
@@ -31,7 +31,7 @@ var _ = Describe("Usagereport", func() {
 
 		It("should return an error if cf curl /v2/organizations fails", func() {
 			fakeAPI.GetOrgsReturns(nil, errors.New("Bad Things"))
-			_, err := cmd.getOrgs()
+			_, err := cmd.getOrgs("")
 			Expect(err).ToNot(BeNil())
 		})
 
@@ -42,19 +42,19 @@ var _ = Describe("Usagereport", func() {
 
 			It("should return an error if cf curl /v2/organizations/{guid}/memory_usage fails", func() {
 				fakeAPI.GetOrgMemoryUsageReturns(0, errors.New("Bad Things"))
-				_, err := cmd.getOrgs()
+				_, err := cmd.getOrgs("")
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("sholud return an error if cf curl to the quota url fails", func() {
 				fakeAPI.GetQuotaMemoryLimitReturns(0, errors.New("Bad Things"))
-				_, err := cmd.getOrgs()
+				_, err := cmd.getOrgs("")
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return an error if cf curl to get org spaces fails", func() {
 				fakeAPI.GetOrgSpacesReturns(nil, errors.New("Bad Things"))
-				_, err := cmd.getOrgs()
+				_, err := cmd.getOrgs("")
 				Expect(err).ToNot(BeNil())
 				Expect(fakeAPI.GetOrgSpacesCallCount()).To(Equal(1))
 			})
@@ -63,7 +63,7 @@ var _ = Describe("Usagereport", func() {
 				fakeAPI.GetOrgSpacesReturns(
 					[]apihelper.Space{apihelper.Space{AppsURL: "/v2/apps"}}, nil)
 				fakeAPI.GetSpaceAppsReturns(nil, errors.New("Bad Things"))
-				_, err := cmd.getOrgs()
+				_, err := cmd.getOrgs("")
 				Expect(err).ToNot(BeNil())
 				Expect(fakeAPI.GetSpaceAppsCallCount()).To(Equal(1))
 			})
@@ -84,7 +84,7 @@ var _ = Describe("Usagereport", func() {
 		It("should return two one org using 1 mb of 2 mb quota", func() {
 			fakeAPI.GetOrgMemoryUsageReturns(float64(1), nil)
 			fakeAPI.GetQuotaMemoryLimitReturns(float64(2), nil)
-			orgs, err := cmd.getOrgs()
+			orgs, err := cmd.getOrgs("")
 			Expect(err).To(BeNil())
 			Expect(len(orgs)).To(Equal(1))
 			org := orgs[0]
@@ -95,14 +95,14 @@ var _ = Describe("Usagereport", func() {
 		It("Should return an org with 1 space", func() {
 			fakeAPI.GetOrgSpacesReturns(
 				[]apihelper.Space{apihelper.Space{}, apihelper.Space{}}, nil)
-			orgs, _ := cmd.getOrgs()
+			orgs, _ := cmd.getOrgs("")
 			Expect(len(orgs[0].Spaces)).To(Equal(2))
 		})
 
 		It("Should not choke on an org with no spaces", func() {
 			fakeAPI.GetOrgSpacesReturns(
 				[]apihelper.Space{}, nil)
-			orgs, _ := cmd.getOrgs()
+			orgs, _ := cmd.getOrgs("")
 			Expect(len(orgs[0].Spaces)).To(Equal(0))
 		})
 
@@ -117,7 +117,7 @@ var _ = Describe("Usagereport", func() {
 					apihelper.App{},
 				},
 				nil)
-			orgs, _ := cmd.getOrgs()
+			orgs, _ := cmd.getOrgs("")
 			org := orgs[0]
 			space := org.Spaces[0]
 			apps := space.Apps
@@ -135,7 +135,7 @@ var _ = Describe("Usagereport", func() {
 				},
 				nil)
 
-			orgs, _ := cmd.getOrgs()
+			orgs, _ := cmd.getOrgs("")
 			org := orgs[0]
 			space := org.Spaces[0]
 			apps := space.Apps
@@ -144,8 +144,7 @@ var _ = Describe("Usagereport", func() {
 		})
 	})
 
-	Describe("Test PCF service type discovery", func() {
-
+	Describe("PCF service type discovery", func() {
 		var siMap map[string]apihelper.ServiceInstance
 		var spMap map[string]apihelper.ServicePlan
 		var sMap map[string]apihelper.Service
@@ -172,6 +171,67 @@ var _ = Describe("Usagereport", func() {
 
 		It("Should return false if a PCF service is discovered", func() {
 			Expect(IsPCFInstance("!123", siMap, spMap, sMap)).To(BeFalse())
+		})
+	})
+
+	Describe("service instance overview generation", func() {
+		var cache globalQueryCache
+
+		BeforeEach(func() {
+			cache.siMap = make(map[string]apihelper.ServiceInstance)
+			cache.spMap = make(map[string]apihelper.ServicePlan)
+			cache.sMap = make(map[string]apihelper.Service)
+			cache.upsMap = make(map[string]apihelper.UserProvidedService)
+			cache.spaceMap = make(map[string]apihelper.SpaceDetails)
+			cache.sbList = make([]apihelper.ServiceBinding, 0)
+
+			cache.siMap["serviceInstanceKey"] = apihelper.ServiceInstance{
+				GUID:            "serviceInstanceGUID",
+				Name:            "myserviceinstance",
+				Type:            "my_type",
+				ServicePlanGUID: "servicePlanGUID",
+				SpaceGUID:       "spaceGUID",
+			}
+
+			cache.spMap["servicePlanGUID"] = apihelper.ServicePlan{
+				GUID:        "servicePlanGUID",
+				Name:        "ServicePlanName",
+				ServiceGUID: "ServiceGUID",
+			}
+
+			cache.sMap["ServiceGUID"] = apihelper.Service{
+				GUID:  "ServiceGUID",
+				Label: "p-service",
+			}
+
+			cache.upsMap["userProvidedServiceGUID"] = apihelper.UserProvidedService{
+				GUID: "userProvidedServiceGUID",
+				Name: "UserProvidedService",
+				Type: "my_user_provided_service_type",
+			}
+
+			cache.spaceMap["spaceGUID"] = apihelper.SpaceDetails{
+				GUID: "spaceGUID",
+				Name: "SpaceName",
+			}
+
+			cache.sbList = append(cache.sbList, apihelper.ServiceBinding{
+				AppGUID:             "AppGUID",
+				ServiceInstanceGUID: "serviceInstanceGUID",
+			})
+		})
+
+		It("should build up the service instance description using the cache", func() {
+			services, err := CreateServiceInstanceOverview(cache)
+			Expect(err).To(BeNil())
+			Expect(services).NotTo(BeNil())
+			Expect(len(services)).To(Equal(1))
+			Expect(services[0].ServiceName).To(Equal("p-service"))
+			Expect(services[0].SpaceName).To(Equal("SpaceName"))
+			Expect(services[0].ServicePlanName).To(Equal("ServicePlanName"))
+			Expect(services[0].ServiceInstanceName).To(Equal("myserviceinstance"))
+			Expect(services[0].AppGUIDs).NotTo(BeNil())
+			Expect(services[0].AppGUIDs[0]).To(Equal("AppGUID"))
 		})
 
 	})

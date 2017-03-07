@@ -15,8 +15,9 @@ type Org struct {
 }
 
 type Space struct {
-	Apps []App
-	Name string
+	Apps      []App
+	Instances []Instance // all service instances in a space
+	Name      string
 }
 
 type App struct {
@@ -29,8 +30,21 @@ type App struct {
 	SiUP      int // Bound User Provided Service Instances
 }
 
+type Service struct {
+	ServiceInstanceGUID string
+	ServiceInstanceName string
+	ServiceInstanceType string
+	SpaceName           string
+	OrgName             string
+	ServicePlanName     string
+	ServiceName         string
+	ServiceType         string
+	AppGUIDs            []string
+}
+
 type Report struct {
-	Orgs []Org
+	Orgs             []Org
+	ServiceInstances []Service
 }
 
 type ServiceInstance struct {
@@ -106,14 +120,43 @@ func (report *Report) ServiceInstanceSummaryCSV() string {
 	// service instance name, Service name (market place), plan, bound apps
 	var response bytes.Buffer
 
-	response.WriteString(fmt.Sprintf("Service Instance Name,Service Name,Plan,Bound Apps\n"))
+	response.WriteString(fmt.Sprintf("Org Name,Space Name,Service Instance Name,Service Instance Type,Service Name,Service Plan Name,Amount of Bound Apps,Bound Apps\n"))
 
 	for _, org := range report.Orgs {
 		for _, space := range org.Spaces {
-			for _, app := range space.Apps {
-				thrdParty := app.SiTotal - app.SiPCF - app.SiUP
-				record := fmt.Sprintf("%s,%s,%s,%d,%d,%d,%d,%d\n", org.Name, space.Name, app.Name, app.Instances, app.SiTotal, app.SiPCF, app.SiUP, thrdParty)
-				response.WriteString(record)
+			for _, service := range report.ServiceInstances {
+				if service.SpaceName == space.Name && service.OrgName == org.Name {
+					apps := strings.Join(service.AppGUIDs, " ")
+					record := fmt.Sprintf("%s,%s,%s,%s,%s,%s,%d,%s\n", service.OrgName, service.SpaceName, service.ServiceInstanceName, service.ServiceInstanceType, service.ServiceName, service.ServicePlanName, len(service.AppGUIDs), apps)
+					response.WriteString(record)
+				}
+			}
+		}
+	}
+
+	return response.String()
+}
+
+func (report *Report) ServiceInstanceSummaryString() string {
+	// service instance name, Service name (market place), plan, bound apps
+	var response bytes.Buffer
+
+	for _, org := range report.Orgs {
+		for _, space := range org.Spaces {
+			first := true
+			for _, service := range report.ServiceInstances {
+				if service.SpaceName == space.Name && service.OrgName == org.Name {
+					if first {
+						response.WriteString(fmt.Sprintf("Org %s\n", org.Name))
+						response.WriteString(fmt.Sprintf("\tSpace %s\n", space.Name))
+						first = false
+					}
+					apps := strings.Join(service.AppGUIDs, " ")
+					record := fmt.Sprintf("\t\tService instance %s of type %s from service %s using service plan %s\n", service.ServiceInstanceName, service.ServiceInstanceType, service.ServiceName, service.ServicePlanName)
+					response.WriteString(record)
+					record = fmt.Sprintf("\t\tis used by %d applications (%s)\n", len(service.AppGUIDs), apps)
+					response.WriteString(record)
+				}
 			}
 		}
 	}

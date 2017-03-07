@@ -1,0 +1,4 @@
+Org test-org
+	Space test-space
+		Service instance serviceInstanceName of type serviceInstanceType from service serviceName using service plan servicePlanName
+		is used by 2 applications (123 321)

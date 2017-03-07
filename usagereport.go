@@ -12,10 +12,13 @@ import (
 )
 
 type globalQueryCache struct {
-	siMap  map[string]apihelper.ServiceInstance
-	spMap  map[string]apihelper.ServicePlan
-	sMap   map[string]apihelper.Service
-	upsMap map[string]apihelper.UserProvidedService
+	siMap    map[string]apihelper.ServiceInstance
+	spMap    map[string]apihelper.ServicePlan
+	sMap     map[string]apihelper.Service
+	upsMap   map[string]apihelper.UserProvidedService
+	spaceMap map[string]apihelper.SpaceDetails
+	orgMap   map[string]apihelper.OrgDetails
+	sbList   []apihelper.ServiceBinding
 }
 
 //UsageReportCmd the plugin
@@ -59,7 +62,7 @@ func ParseFlags(args []string) flagVal {
 	}
 }
 
-// createQueryCache makes global REST queries just once
+// createQueryCache makes global REST queries just once and stores them as a cache.
 func (cmd *UsageReportCmd) createQueryCache() error {
 	// get service instances
 	siMap, err := cmd.apiHelper.GetServiceInstanceMap()
@@ -84,11 +87,29 @@ func (cmd *UsageReportCmd) createQueryCache() error {
 		return err
 	}
 
+	spaceMap, err := cmd.apiHelper.GetSpaceMap()
+	if err != nil {
+		return err
+	}
+
+	orgMap, err := cmd.apiHelper.GetOrgMap()
+	if err != nil {
+		return err
+	}
+
+	sbList, err := cmd.apiHelper.GetServiceBindingsList()
+	if err != nil {
+		return err
+	}
+
 	cmd.queryCache = globalQueryCache{
-		siMap:  siMap,
-		spMap:  spMap,
-		sMap:   sMap,
-		upsMap: upsMap,
+		siMap:    siMap,
+		spMap:    spMap,
+		sMap:     sMap,
+		upsMap:   upsMap,
+		spaceMap: spaceMap,
+		orgMap:   orgMap,
+		sbList:   sbList,
 	}
 	return nil
 }
@@ -99,7 +120,7 @@ func (cmd *UsageReportCmd) GetMetadata() plugin.PluginMetadata {
 		Name: "usage-report",
 		Version: plugin.VersionType{
 			Major: 1,
-			Minor: 5,
+			Minor: 6,
 			Build: 0,
 		},
 		Commands: []plugin.Command{
@@ -120,11 +141,11 @@ func (cmd *UsageReportCmd) GetMetadata() plugin.PluginMetadata {
 	}
 }
 
-func (cmd *UsageReportCmd) getFilteredOrgs(orgName string) []models.Org {
+func (cmd *UsageReportCmd) getFilteredOrgs(orgName, spaceName string) []models.Org {
 	var orgs []models.Org
 
 	if orgName != "" {
-		org, err := cmd.getOrg(orgName)
+		org, err := cmd.getOrg(orgName, spaceName)
 		if nil != err {
 			fmt.Println(err)
 			os.Exit(1)
@@ -132,7 +153,7 @@ func (cmd *UsageReportCmd) getFilteredOrgs(orgName string) []models.Org {
 		orgs = append(orgs, org)
 	} else {
 		var err error
-		orgs, err = cmd.getOrgs()
+		orgs, err = cmd.getOrgs(spaceName)
 		if nil != err {
 			fmt.Println(err)
 			os.Exit(1)
@@ -141,13 +162,25 @@ func (cmd *UsageReportCmd) getFilteredOrgs(orgName string) []models.Org {
 	return orgs
 }
 
-//UsageReportCommand doer
+// UsageReportCommand doer
 func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
 	flagVals := ParseFlags(args)
 
 	var report models.Report
 
-	report.Orgs = cmd.getFilteredOrgs(flagVals.OrgName)
+	// make global queries to the API
+	if err := cmd.createQueryCache(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	var err error
+	if report.ServiceInstances, err = CreateServiceInstanceOverview(cmd.queryCache); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	report.Orgs = cmd.getFilteredOrgs(flagVals.OrgName, flagVals.SpaceName)
 
 	// process service instances
 	if flagVals.ShowServiceInstances == "app" {
@@ -157,7 +190,11 @@ func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
 			fmt.Println(report.ServiceInstanceReportString())
 		}
 	} else if flagVals.ShowServiceInstances == "summary" {
-		fmt.Println("TODO")
+		if flagVals.Format == "csv" {
+			fmt.Println(report.ServiceInstanceSummaryCSV())
+		} else {
+			fmt.Println(report.ServiceInstanceSummaryString())
+		}
 	} else {
 		if flagVals.Format == "csv" {
 			fmt.Println(report.CSV())
@@ -167,10 +204,7 @@ func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
 	}
 }
 
-func (cmd *UsageReportCmd) getOrgs() ([]models.Org, error) {
-	if err := cmd.createQueryCache(); err != nil {
-		return nil, err
-	}
+func (cmd *UsageReportCmd) getOrgs(spaceName string) ([]models.Org, error) {
 
 	rawOrgs, err := cmd.apiHelper.GetOrgs()
 	if nil != err {
@@ -180,7 +214,7 @@ func (cmd *UsageReportCmd) getOrgs() ([]models.Org, error) {
 	var orgs = []models.Org{}
 
 	for _, o := range rawOrgs {
-		orgDetails, err := cmd.getOrgDetails(o)
+		orgDetails, err := cmd.getOrgDetails(o, spaceName)
 		if err != nil {
 			return nil, err
 		}
@@ -189,16 +223,16 @@ func (cmd *UsageReportCmd) getOrgs() ([]models.Org, error) {
 	return orgs, nil
 }
 
-func (cmd *UsageReportCmd) getOrg(name string) (models.Org, error) {
-	rawOrg, err := cmd.apiHelper.GetOrg(name)
+func (cmd *UsageReportCmd) getOrg(orgName, spaceName string) (models.Org, error) {
+	rawOrg, err := cmd.apiHelper.GetOrg(orgName)
 	if nil != err {
 		return models.Org{}, err
 	}
 
-	return cmd.getOrgDetails(rawOrg)
+	return cmd.getOrgDetails(rawOrg, spaceName)
 }
 
-func (cmd *UsageReportCmd) getOrgDetails(o apihelper.Organization) (models.Org, error) {
+func (cmd *UsageReportCmd) getOrgDetails(o apihelper.Organization, spaceName string) (models.Org, error) {
 	usage, err := cmd.apiHelper.GetOrgMemoryUsage(o)
 	if nil != err {
 		return models.Org{}, err
@@ -207,7 +241,7 @@ func (cmd *UsageReportCmd) getOrgDetails(o apihelper.Organization) (models.Org, 
 	if nil != err {
 		return models.Org{}, err
 	}
-	spaces, err := cmd.getSpaces(o.SpacesURL)
+	spaces, err := cmd.getSpaces(o.SpacesURL, spaceName)
 	if nil != err {
 		return models.Org{}, err
 	}
@@ -220,7 +254,7 @@ func (cmd *UsageReportCmd) getOrgDetails(o apihelper.Organization) (models.Org, 
 	}, nil
 }
 
-func (cmd *UsageReportCmd) getSpaces(spaceURL string) ([]models.Space, error) {
+func (cmd *UsageReportCmd) getSpaces(spaceURL, filteredSpaceName string) ([]models.Space, error) {
 	rawSpaces, err := cmd.apiHelper.GetOrgSpaces(spaceURL)
 	if nil != err {
 		return nil, err
@@ -228,6 +262,13 @@ func (cmd *UsageReportCmd) getSpaces(spaceURL string) ([]models.Space, error) {
 
 	var spaces = []models.Space{}
 	for _, s := range rawSpaces {
+		// filter spaces
+		if filteredSpaceName != "" {
+			if s.Name != filteredSpaceName {
+				continue
+			}
+		}
+
 		apps, err := cmd.getApps(s.AppsURL)
 		if nil != err {
 			return nil, err

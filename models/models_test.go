@@ -28,6 +28,22 @@ var _ = Describe("Models", func() {
 					},
 				},
 			},
+			ServiceInstances: []Service{
+				Service{
+					ServiceInstanceGUID: "111",
+					ServiceInstanceName: "serviceInstanceName",
+					ServiceInstanceType: "serviceInstanceType",
+					SpaceName:           "test-space",
+					OrgName:             "test-org",
+					ServicePlanName:     "servicePlanName",
+					ServiceName:         "serviceName",
+					ServiceType:         "serviceType",
+					AppGUIDs: []string{
+						"123",
+						"321",
+					},
+				},
+			},
 		}
 	})
 
@@ -47,7 +63,7 @@ var _ = Describe("Models", func() {
 		})
 	})
 
-	Describe("Services#CSV", func() {
+	Describe("ServicesApp#CSV", func() {
 		It("should return csv formated string", func() {
 			expectedOutput, err := ioutil.ReadFile("fixtures/services.csv")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -55,11 +71,27 @@ var _ = Describe("Models", func() {
 		})
 	})
 
-	Describe("Services#String", func() {
+	Describe("ServicesApp#String", func() {
 		It("should return string formated string", func() {
 			expectedOutput, err := ioutil.ReadFile("fixtures/services.txt")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(report.ServiceInstanceReportString()).To(Equal(string(expectedOutput)))
+		})
+	})
+
+	Describe("ServicesSummary#CSV", func() {
+		It("should return csv formated string", func() {
+			expectedOutput, err := ioutil.ReadFile("fixtures/servicesSummary.csv")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(report.ServiceInstanceSummaryCSV()).To(Equal(string(expectedOutput)))
+		})
+	})
+
+	Describe("ServicesSummary#String", func() {
+		It("should return string formated string", func() {
+			expectedOutput, err := ioutil.ReadFile("fixtures/servicesSummary.txt")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(report.ServiceInstanceSummaryString()).To(Equal(string(expectedOutput)))
 		})
 	})
 

@@ -1,10 +1,46 @@
 # UsageReport Plugin
-This CF CLI Plugin to shows memory consumption and application instances for each org and space you have permission to access.
 
-[![wercker status](https://app.wercker.com/status/8881b5530809e3636080d2df6433aada/s/master "wercker status")](https://app.wercker.com/project/bykey/8881b5530809e3636080d2df6433aada)
+## Note: This is an experimental fork from [https://github.com/krujos/usagereport-plugin] adding more capabilities 
+when it comes to measure service instance usage.
+
+This CF CLI Plugin to shows memory consumption and application instances, and service instances for each org and space you have permission to access.
 
 
-#Usage
+# Usage
+
+For listing current service instance usage in CSV style:
+
+```
+○ → cf usage-report -i summary -f csv
+Org Name,Space Name,Service Instance Name,Service Instance Type,Service Name,Service Plan Name,Amount of Bound Apps,Bound Apps
+DataFlow,Test,redis,managed_service_instance,p-redis,shared-vm,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
+DataFlow,Test,rabbit,managed_service_instance,p-rabbitmq,standard,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
+DataFlow,Test,my_mysql,managed_service_instance,p-mysql,100mb,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
+AES,Dev,mysql,managed_service_instance,p-mysql,100mb,1,06ce0f19-0419-4b28-99a8-1cb48b973258
+AES,Dev,edgeTest,managed_service_instance,apigee-edge,org,0,
+``
+
+For listing an app centric view of service instance usage:
+
+```
+cf usage-report -i app -f csv
+Org,Space,AppName,Instances,Bound Service Instances,Bound PCF Services,Bound User Provided Services,Bound 3rd Party Services
+system,system,p-invitations,2,0,0,0,0
+system,system,apps-manager-js,6,0,0,0,0
+system,system,app-usage-server,1,0,0,0,0
+system,system,app-usage-scheduler,1,0,0,0,0
+system,system,app-usage-worker,1,0,0,0,0
+system,notifications-with-ui,notifications-ui,2,0,0,0,0
+system,pivotal-account-space,pivotal-account,2,0,0,0,0
+system,autoscaling,autoscale,3,0,0,0,0
+apigee-cf-service-broker-org,apigee-cf-service-broker-space,apigee-cf-service-broker-2.0.1,1,0,0,0,0
+DataFlow,Test,dataflow-server,1,3,3,0,0
+AES,Dev,aes,1,1,0,1,0
+AES,Dev,aesserver,1,0,0,0,0
+ESA,Dev,aes,1,0,0,0,0
+ESA,Dev,spring-music,1,2,1,1,0
+```
+
 
 For human readable output:
 

@@ -87,6 +87,27 @@ type FakeCFAPIHelper struct {
 		result1 map[string]apihelper.UserProvidedService
 		result2 error
 	}
+
+	GetServiceBindingsListStub    func() ([]apihelper.ServiceBinding, error)
+	getServiceBindingsListMutex   sync.RWMutex
+	getServiceBindingsListReturns struct {
+		result1 []apihelper.ServiceBinding
+		result2 error
+	}
+
+	GetSpaceMapStub    func() (map[string]apihelper.SpaceDetails, error)
+	getSpaceMapMutex   sync.RWMutex
+	getSpaceMapReturns struct {
+		result1 map[string]apihelper.SpaceDetails
+		result2 error
+	}
+
+	GetOrgMapStub    func() (map[string]apihelper.OrgDetails, error)
+	getOrgMapMutex   sync.RWMutex
+	getOrgMapReturns struct {
+		result1 map[string]apihelper.OrgDetails
+		result2 error
+	}
 }
 
 func (fake *FakeCFAPIHelper) GetOrgs() ([]apihelper.Organization, error) {
@@ -285,6 +306,24 @@ func (fake *FakeCFAPIHelper) GetUserProvidedServiceMap() (map[string]apihelper.U
 	fake.getUserProvidedServiceMapMutex.RLock()
 	defer fake.getUserProvidedServiceMapMutex.RUnlock()
 	return fake.getUserProvidedServiceMapReturns.result1, fake.getUserProvidedServiceMapReturns.result2
+}
+
+func (fake *FakeCFAPIHelper) GetServiceBindingsList() ([]apihelper.ServiceBinding, error) {
+	fake.getServiceBindingsListMutex.RLock()
+	defer fake.getServiceBindingsListMutex.RUnlock()
+	return fake.getServiceBindingsListReturns.result1, fake.getServiceBindingsListReturns.result2
+}
+
+func (fake *FakeCFAPIHelper) GetSpaceMap() (map[string]apihelper.SpaceDetails, error) {
+	fake.getSpaceMapMutex.RLock()
+	defer fake.getSpaceMapMutex.RUnlock()
+	return fake.getSpaceMapReturns.result1, fake.getSpaceMapReturns.result2
+}
+
+func (fake *FakeCFAPIHelper) GetOrgMap() (map[string]apihelper.OrgDetails, error) {
+	fake.getOrgMapMutex.RLock()
+	defer fake.getOrgMapMutex.RUnlock()
+	return fake.getOrgMapReturns.result1, fake.getOrgMapReturns.result2
 }
 
 var _ apihelper.CFAPIHelper = new(FakeCFAPIHelper)

@@ -274,7 +274,7 @@ var _ = Describe("UsageReport", func() {
 			serviceJSON = slurp("test-data/services.json")
 		})
 
-		It("should return an error when the services url fails", func() {
+		It("should return an error when the services url call fails", func() {
 			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
 			_, err := api.GetServiceInstanceMap()
 			Expect(err).ToNot(BeNil())
@@ -294,6 +294,117 @@ var _ = Describe("UsageReport", func() {
 			Expect(s.Label).To(Equal("label-57"))
 		})
 
+	})
+
+	Describe("get user provided service map", func() {
+		var serviceJSON []string
+
+		BeforeEach(func() {
+			serviceJSON = slurp("test-data/user_provided_service_instances.json")
+		})
+
+		It("should return an error when the user provided services url call fails", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
+			_, err := api.GetUserProvidedServiceMap()
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return a map containing a specific element with all entries set", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(serviceJSON, nil)
+			sMap, err := api.GetUserProvidedServiceMap()
+
+			Expect(err).To(BeNil())
+			Expect(sMap).NotTo(BeNil())
+
+			s, exists := sMap["54e4c645-7d20-4271-8c27-8cc904e1e7ee"]
+
+			Expect(exists).To(BeTrue())
+			Expect(s.Name).To(Equal("name-1696"))
+			Expect(s.Type).To(Equal("user_provided_service_instance"))
+		})
+	})
+
+	Describe("get service bindings list", func() {
+		var serviceBindingJSON []string
+
+		BeforeEach(func() {
+			serviceBindingJSON = slurp("test-data/service_bindings.json")
+		})
+
+		It("should return an error when the service bindings url fails", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
+			_, err := api.GetServiceBindingsList()
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return a list of service bindings with all required entries set", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(serviceBindingJSON, nil)
+			sb, err := api.GetServiceBindingsList()
+
+			Expect(err).To(BeNil())
+			Expect(sb).NotTo(BeNil())
+			Expect(len(sb)).To(Equal(1))
+
+			Expect(sb[0].ServiceInstanceGUID).To(Equal("bde206e0-1ee8-48ad-b794-44c857633d50"))
+			Expect(sb[0].AppGUID).To(Equal("b26e7e98-f002-41a8-a663-1b60f808a92a"))
+		})
+	})
+
+	Describe("get space map", func() {
+		var spaceJSON []string
+
+		BeforeEach(func() {
+			spaceJSON = slurp("test-data/spaces.json")
+		})
+
+		It("should return an error when the service bindings url fails", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
+			_, err := api.GetSpaceMap()
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return a list of service bindings with all required entries set", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(spaceJSON, nil)
+			sm, err := api.GetSpaceMap()
+
+			Expect(err).To(BeNil())
+			Expect(sm).NotTo(BeNil())
+
+			space, exists := sm["de5db872-5b9e-4775-8d4a-f018133f9aaa"]
+			Expect(exists).To(BeTrue())
+			Expect(space.Name).To(Equal("jdk-space-2"))
+			Expect(space.OrgGUID).To(Equal("b1a23fd6-ac8d-4304-a3b4-815745417acd"))
+		})
+	})
+
+	Describe("get org map", func() {
+		var orgJSON []string
+
+		BeforeEach(func() {
+			orgJSON = slurp("test-data/orgs.json")
+		})
+
+		It("should return an error when the org url call fails", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(nil, errors.New("Bad Things"))
+			_, err := api.GetOrgMap()
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return a list of organisations with all required entries set", func() {
+			fakeCliConnection.CliCommandWithoutTerminalOutputReturns(orgJSON, nil)
+			om, err := api.GetOrgMap()
+
+			Expect(err).To(BeNil())
+			Expect(om).NotTo(BeNil())
+
+			org, exists := om["b1a23fd6-ac8d-4304-a3b4-815745417acd"]
+			Expect(exists).To(BeTrue())
+			Expect(org.Name).To(Equal("jdk-org"))
+
+			org2, exists2 := om["536a6736-0d89-4972-9e8c-0fbbb6802721"]
+			Expect(exists2).To(BeTrue())
+			Expect(org2.Name).To(Equal("test-org"))
+		})
 	})
 
 })
