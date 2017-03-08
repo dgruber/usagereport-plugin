@@ -1,5 +1,7 @@
 # UsageReport Plugin
 
+[![Build Status](https://travis-ci.org/dgruber/usagereport-plugin.svg)](https://travis-ci.org/dgruber/usagereport-plugin)
+
 _Note_: This is an experimental fork from [https://github.com/krujos/usagereport-plugin](https://github.com/krujos/usagereport-plugin) adding more capabilities when it comes to measure service instance usage.
 
 This CF CLI Plugin shows memory consumption and application instances, and service instances for each org and space you have permission to access.
