@@ -107,21 +107,24 @@ test-org, test-space, 256, 4096, 2, 1, 3, 2
 ##### MacOS X CF CLI
 
   ```
-  $ wget https://github.com/dgruber/usagereport-plugin/blob/master/bin/osx/usagereport-plugin
+  $ wget https://github.com/dgruber/usagereport-plugin/raw/master/bin/osx/usagereport-plugin
+  $ chmod +x usagereport-plugin
   $ cf install-plugin usagereport-plugin
   ```
 
 ##### Linux CF CLI
 
   ```
-  $ wget https://github.com/dgruber/usagereport-plugin/blob/master/bin/linux64/usagereport-plugin
+  $ wget https://github.com/dgruber/usagereport-plugin/raw/master/bin/linux64/usagereport-plugin
+  $ chmod +x usagereport-plugin
   $ cf install-plugin usagereport-plugin
   ```
 
 ##### Windows (32bit) CF CLI
 
   ```
-  $ wget https://github.com/dgruber/usagereport-plugin/blob/master/bin/win32/usagereport-plugin
+  $ wget https://github.com/dgruber/usagereport-plugin/raw/master/bin/win32/usagereport-plugin
+  $ ...
   $ cf install-plugin usagereport-plugin
   ```
 
@@ -133,3 +136,7 @@ test-org, test-space, 256, 4096, 2, 1, 3, 2
   $ go build
   $ cf install-plugin usagereport-plugin
   ```
+
+## Uninstallation
+
+   → cf uninstall-plugin usage-report-si
