@@ -116,9 +116,47 @@ func (space *Space) RunningInstancesCount() int {
 	return runningInstancesCount
 }
 
+// BuildOrgAndSpacesUsingServiceInstances adds orgs and the space names without querying
+// each time the REST API
+func (report *Report) BuildOrgAndSpacesUsingServiceInstances() {
+	var null struct{}
+	type org struct {
+		spaceNames map[string]struct{}
+	}
+
+	report.Orgs = nil
+
+	// build up map of org and space names
+	oMap := make(map[string]org)
+	for _, v := range report.ServiceInstances {
+		if om, orgExists := oMap[v.OrgName]; orgExists == true {
+			if _, spaceExists := om.spaceNames[v.SpaceName]; spaceExists == true {
+				continue
+			} else {
+				om.spaceNames[v.SpaceName] = null
+			}
+		} else {
+			sMap := make(map[string]struct{})
+			sMap[v.SpaceName] = null
+			oMap[v.OrgName] = org{spaceNames: sMap}
+		}
+	}
+
+	// create the org lists containing all names from the spaces
+	for orgName, s := range oMap {
+		var spaces []Space
+		for spaceName, _ := range s.spaceNames {
+			spaces = append(spaces, Space{Name: spaceName})
+		}
+		report.Orgs = append(report.Orgs, Org{Name: orgName, Spaces: spaces})
+	}
+}
+
 func (report *Report) ServiceInstanceSummaryCSV() string {
 	// service instance name, Service name (market place), plan, bound apps
 	var response bytes.Buffer
+
+	report.BuildOrgAndSpacesUsingServiceInstances()
 
 	response.WriteString(fmt.Sprintf("Org Name,Space Name,Service Instance Name,Service Instance Type,Service Name,Service Plan Name,Amount of Bound Apps,Bound Apps\n"))
 
@@ -140,6 +178,8 @@ func (report *Report) ServiceInstanceSummaryCSV() string {
 func (report *Report) ServiceInstanceSummaryString() string {
 	// service instance name, Service name (market place), plan, bound apps
 	var response bytes.Buffer
+
+	report.BuildOrgAndSpacesUsingServiceInstances()
 
 	for _, org := range report.Orgs {
 		for _, space := range org.Spaces {

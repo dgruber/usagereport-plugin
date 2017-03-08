@@ -2,15 +2,14 @@
 
 _Note_: This is an experimental fork from [https://github.com/krujos/usagereport-plugin](https://github.com/krujos/usagereport-plugin) adding more capabilities when it comes to measure service instance usage.
 
-This CF CLI Plugin to shows memory consumption and application instances, and service instances for each org and space you have permission to access.
-
+This CF CLI Plugin shows memory consumption and application instances, and service instances for each org and space you have permission to access.
 
 # Usage
 
 For listing current service instance usage in CSV style:
 
 ```
-○ → cf usage-report -i summary -f csv
+○ → cf usage-report-si -i summary -f csv
 Org Name,Space Name,Service Instance Name,Service Instance Type,Service Name,Service Plan Name,Amount of Bound Apps,Bound Apps
 DataFlow,Test,redis,managed_service_instance,p-redis,shared-vm,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
 DataFlow,Test,rabbit,managed_service_instance,p-rabbitmq,standard,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
@@ -22,7 +21,7 @@ AES,Dev,edgeTest,managed_service_instance,apigee-edge,org,0,
 For listing an app centric view of service instance usage:
 
 ```
-○ → cf usage-report -i app -f csv
+○ → cf usage-report-si -i app -f csv
 Org,Space,AppName,Instances,Bound Service Instances,Bound PCF Services,Bound User Provided Services,Bound 3rd Party Services
 system,system,p-invitations,2,0,0,0,0
 system,system,apps-manager-js,6,0,0,0,0
@@ -38,11 +37,10 @@ AES,Dev,aes,1,1,0,1,0
 AES,Dev,aesserver,1,0,0,0,0
 ```
 
-
 For human readable output:
 
 ```
-➜  usagereport-plugin git:(master) ✗ cf usage-report
+➜  usagereport-plugin git:(master) ✗ cf usage-report-si
 Gathering usage information
 Org platform-eng is consuming 53400 MB of 204800 MB.
 	Space CFbook is consuming 128 MB memory (0%) of org quota.
@@ -95,24 +93,41 @@ You are running 18 apps in 3 orgs, with a total of 27 instances.
 CSV output:
 
 ```
-➜  usagereport-plugin git:(master) ✗ cf usage-report -f csv
+➜  usagereport-plugin git:(master) ✗ cf usage-report-si -f csv
 OrgName, SpaceName, SpaceMemoryUsed, OrgMemoryQuota, AppsDeployed, AppsRunning, AppInstancesDeployed, AppInstancesRunning
 test-org, test-space, 256, 4096, 2, 1, 3, 2
 ```
 
-##Installation
-#####Install from CLI
+## Installation
+
+#### Install pre-compiled Binary
+
+##### MacOS X CF CLI
+
   ```
-  $ cf add-plugin-repo CF-Community http://plugins.cloudfoundry.org/
-  $ cf install-plugin 'Usage Report' -r CF-Community
+  $ wget https://github.com/dgruber/usagereport-plugin/blob/master/bin/osx/usagereport-plugin
+  $ cf install-plugin usagereport-plugin
   ```
 
+##### Linux CF CLI
 
-#####Install from Source (need to have [Go](http://golang.org/dl/) installed)
   ```
-  $ go get github.com/cloudfoundry/cli
-  $ go get github.com/krujos/usagereport-plugin
-  $ cd $GOPATH/src/github.com/krujos/usagereport-plugin
+  $ wget https://github.com/dgruber/usagereport-plugin/blob/master/bin/linux64/usagereport-plugin
+  $ cf install-plugin usagereport-plugin
+  ```
+
+##### Windows (32bit) CF CLI
+
+  ```
+  $ wget https://github.com/dgruber/usagereport-plugin/blob/master/bin/win32/usagereport-plugin
+  $ cf install-plugin usagereport-plugin
+  ```
+
+#### Install from Source (need to have [Go](http://golang.org/dl/) with vendor support installed (like > 1.7))
+
+  ```
+  $ go get github.com/dgruber/usagereport-plugin
+  $ cd $GOPATH/src/github.com/dgruber/usagereport-plugin
   $ go build
   $ cf install-plugin usagereport-plugin
   ```

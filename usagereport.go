@@ -22,7 +22,7 @@ type globalQueryCache struct {
 	sbMap    map[string][]string
 }
 
-//UsageReportCmd the plugin
+// UsageReportCmd the plugin
 type UsageReportCmd struct {
 	apiHelper  apihelper.CFAPIHelper
 	queryCache globalQueryCache
@@ -65,19 +65,16 @@ func ParseFlags(args []string) flagVal {
 
 // createQueryCache makes global REST queries just once and stores them as a cache.
 func (cmd *UsageReportCmd) createQueryCache() error {
-	// get service instances
 	siMap, err := cmd.apiHelper.GetServiceInstanceMap()
 	if err != nil {
 		return err
 	}
 
-	// get service plan map
 	spMap, err := cmd.apiHelper.GetServicePlanMap()
 	if err != nil {
 		return err
 	}
 
-	// get services (for determining the p-)
 	sMap, err := cmd.apiHelper.GetServiceMap()
 	if err != nil {
 		return err
@@ -127,21 +124,21 @@ func (cmd *UsageReportCmd) createQueryCache() error {
 	return nil
 }
 
-//GetMetadata returns metatada
+// GetMetadata returns metatada
 func (cmd *UsageReportCmd) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
-		Name: "usage-report",
+		Name: "usage-report-si",
 		Version: plugin.VersionType{
 			Major: 1,
-			Minor: 6,
+			Minor: 7,
 			Build: 0,
 		},
 		Commands: []plugin.Command{
 			{
-				Name:     "usage-report",
+				Name:     "usage-report-si",
 				HelpText: "Report AI and memory usage for orgs and spaces",
 				UsageDetails: plugin.Usage{
-					Usage: "cf usage-report [-o orgName] [-s spaceName] [-i <app|summary>] [-f <csv>]",
+					Usage: "cf usage-report-si [-o orgName] [-s spaceName] [-i <app|summary>] [-f <csv>]",
 					Options: map[string]string{
 						"o": "Filter for Specific Orgranization",
 						"s": "Filter for Specific Space",
@@ -193,10 +190,9 @@ func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
 		os.Exit(1)
 	}
 
-	report.Orgs = cmd.getFilteredOrgs(flagVals.OrgName, flagVals.SpaceName)
-
 	// process service instances
 	if flagVals.ShowServiceInstances == "app" {
+		report.Orgs = cmd.getFilteredOrgs(flagVals.OrgName, flagVals.SpaceName)
 		if flagVals.Format == "csv" {
 			fmt.Println(report.ServiceInstanceReportCSV())
 		} else {
@@ -209,6 +205,7 @@ func (cmd *UsageReportCmd) UsageReportCommand(args []string) {
 			fmt.Println(report.ServiceInstanceSummaryString())
 		}
 	} else {
+		// standard memory report
 		if flagVals.Format == "csv" {
 			fmt.Println(report.CSV())
 		} else {
@@ -318,13 +315,7 @@ func (cmd *UsageReportCmd) getApps(appsURL string) ([]models.App, error) {
 	var apps = []models.App{}
 	for _, a := range rawApps {
 
-		// TODO check if that is available globally and can be cached
-
 		sb := cmd.queryCache.sbMap[a.GUID]
-		// sb, err := cmd.apiHelper.GetServiceBindings(a.ServiceBindingsURL)
-		// if err != nil {
-		//	return nil, err
-		// }
 
 		siTotal := len(sb)
 		siPCF := 0 // PCF service instances
@@ -357,7 +348,7 @@ func (cmd *UsageReportCmd) getApps(appsURL string) ([]models.App, error) {
 
 //Run runs the plugin
 func (cmd *UsageReportCmd) Run(cli plugin.CliConnection, args []string) {
-	if args[0] == "usage-report" {
+	if args[0] == "usage-report-si" {
 		cmd.apiHelper = apihelper.New(cli)
 		cmd.UsageReportCommand(args)
 	}
