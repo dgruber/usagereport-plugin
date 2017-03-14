@@ -1,2 +1,2 @@
-Org Name,Space Name,Service Instance Name,Service Instance Type,Service Name,Service Plan Name,Amount of Bound Apps,Bound Apps
+OrgName,SpaceName,ServiceInstanceName,ServiceInstanceType,ServiceName,ServicePlanName,AmountOfBoundApps,BoundApps
 test-org,test-space,serviceInstanceName,serviceInstanceType,serviceName,servicePlanName,2,123 321

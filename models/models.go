@@ -158,7 +158,7 @@ func (report *Report) ServiceInstanceSummaryCSV() string {
 
 	report.BuildOrgAndSpacesUsingServiceInstances()
 
-	response.WriteString(fmt.Sprintf("Org Name,Space Name,Service Instance Name,Service Instance Type,Service Name,Service Plan Name,Amount of Bound Apps,Bound Apps\n"))
+	response.WriteString(fmt.Sprintf("OrgName,SpaceName,ServiceInstanceName,ServiceInstanceType,ServiceName,ServicePlanName,AmountOfBoundApps,BoundApps\n"))
 
 	for _, org := range report.Orgs {
 		for _, space := range org.Spaces {
@@ -207,7 +207,7 @@ func (report *Report) ServiceInstanceSummaryString() string {
 func (report *Report) ServiceInstanceReportCSV() string {
 	var response bytes.Buffer
 
-	response.WriteString(fmt.Sprintf("Org,Space,AppName,Instances,Bound Service Instances,Bound PCF Services,Bound User Provided Services,Bound 3rd Party Services\n"))
+	response.WriteString(fmt.Sprintf("OrgName,SpaceName,AppName,AppInstances,BoundServiceInstances,BoundPCFServices,BoundUserProvidedServices,Bound3rdPartyServices\n"))
 
 	for _, org := range report.Orgs {
 		for _, space := range org.Spaces {
