@@ -12,7 +12,7 @@ For listing current service instance usage in CSV style:
 
 ```
 ○ → cf usage-report-si -i summary -f csv
-Org Name,Space Name,Service Instance Name,Service Instance Type,Service Name,Service Plan Name,Amount of Bound Apps,Bound Apps
+OrgName,SpaceName,ServiceInstanceName,ServiceInstanceType,ServiceName,ServicePlanName,AmountOfBoundApps,BoundApps
 DataFlow,Test,redis,managed_service_instance,p-redis,shared-vm,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
 DataFlow,Test,rabbit,managed_service_instance,p-rabbitmq,standard,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
 DataFlow,Test,my_mysql,managed_service_instance,p-mysql,100mb,1,6ed59f50-dd09-4a28-ae17-2e4254a60f83
@@ -24,7 +24,7 @@ For listing an app centric view of service instance usage:
 
 ```
 ○ → cf usage-report-si -i app -f csv
-Org,Space,AppName,Instances,Bound Service Instances,Bound PCF Services,Bound User Provided Services,Bound 3rd Party Services
+OrgName,SpaceName,AppName,AppInstances,BoundServiceInstances,BoundPCFServices,BoundUserProvidedServices,Bound3rdPartyServices
 system,system,p-invitations,2,0,0,0,0
 system,system,apps-manager-js,6,0,0,0,0
 system,system,app-usage-server,1,0,0,0,0
@@ -123,10 +123,19 @@ test-org, test-space, 256, 4096, 2, 1, 3, 2
 ##### Windows (32bit) CF CLI
 
   ```
-  $ wget https://github.com/dgruber/usagereport-plugin/raw/master/bin/win32/usagereport-plugin
+  $ wget https://github.com/dgruber/usagereport-plugin/raw/master/bin/win32/usagereport-plugin.exe
   $ ...
-  $ cf install-plugin usagereport-plugin
+  $ cf install-plugin usagereport-plugin.exe
   ```
+
+##### Windows (64bit) CF CLI
+
+  ```
+  $ wget https://github.com/dgruber/usagereport-plugin/raw/master/bin/win64/usagereport-plugin.exe
+  $ ...
+  $ cf install-plugin usagereport-plugin.exe
+  ```
+
 
 #### Install from Source (need to have [Go](http://golang.org/dl/) with vendor support installed (like > 1.7))
 
